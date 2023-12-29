@@ -1053,7 +1053,7 @@
     "admin/debug_link_toast": "{{linkStart}}Klikněte sem{{linkEnd}} pro zobrazení ladicího odkazu.",
     "admin/editing_integration_for_x": "Úprava integrace {{integration}} u uživatele {{user}}",
     "admin/editing_integration_x": "Úprava integrace {{integration}}",
-    "admin/email_language_info": "Nevidíte váš jazyk? Ujistěte se, že je jeho jazykový soubor v adresáři /custom/languages/ zapisovatelný vaším webovým serverem.",
+    "admin/email_language_info": "Nevidíte váš jazyk? Ujistěte se, že je jeho jazykový soubor v adresáři /modules/Core/language/ zapisovatelný vaším webovým serverem.",
     "admin/email_port": "Port",
     "admin/group_cloned_successfully": "Skupina úspěšně naklonována.",
     "admin/identifier": "Identifikátor",
@@ -1334,5 +1334,7 @@
     "user/received": "Obdrženo",
     "api/groups_updates_ignored": "Požadavek na synchronizaci skupiny je ignorován, protože integrace Minecraftu je zakázána nebo server není nakonfigurován jako server pro synchronizaci skupiny v panelu.",
     "admin/default_description": "Výchozí popis",
-    "admin/default_keywords": "Výchozí klíčová slova"
+    "admin/default_keywords": "Výchozí klíčová slova",
+    "admin/require_two_factor_for_staffcp": "Vyžadovat dvoufaktorové ověření pro přihlášení do panelu (pokud jej má uživatel povolené)",
+    "user/two_factor_auth_code": "Kód dvoufaktorového ověření"
 }
