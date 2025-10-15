@@ -1,4 +1,11 @@
 <?php
+/**
+ * NamelessMC Discord Module
+ *
+ * @author Aberdeener
+ * @version 2.2.0
+ * @license MIT
+ */
 
 class Discord_Module extends Module {
 
@@ -8,9 +15,9 @@ class Discord_Module extends Module {
         $this->_language = $language;
 
         $name = 'Discord Integration';
-        $author = '<a href="https://tadhg.sh" target="_blank" rel="nofollow noopener">Aberdeener</a>';
-        $module_version = '2.1.2';
-        $nameless_version = '2.1.2';
+        $author = '<a href="https://github.com/tadhgboyle" target="_blank" rel="nofollow noopener">Aberdeener</a>';
+        $module_version = '2.2.3';
+        $nameless_version = '2.2.3';
 
         parent::__construct($this, $name, $author, $module_version, $nameless_version);
 
@@ -50,27 +57,18 @@ class Discord_Module extends Module {
     public function onEnable() {
     }
 
-    public function onPageLoad(User $user, Pages $pages, Cache $cache, Smarty $smarty, $navs, Widgets $widgets, ?TemplateBase $template) {
+    public function onPageLoad(User $user, Pages $pages, Cache $cache, $smarty, $navs, Widgets $widgets, TemplateBase $template) {
         PermissionHandler::registerPermissions($this->getName(), [
             'admincp.discord' => $this->_language->get('admin', 'integrations') . ' &raquo; ' . Discord::getLanguageTerm('discord'),
         ]);
 
         if ($pages->getActivePage()['widgets'] || (defined('PANEL_PAGE') && str_contains(PANEL_PAGE, 'widget'))) {
-            $widgets->add(new DiscordWidget($cache, $smarty));
+            $widgets->add(new DiscordWidget($cache));
         }
 
         if (!defined('FRONT_END')) {
-            $cache->setCache('panel_sidebar');
-
             if ($user->hasPermission('admincp.discord')) {
-                if (!$cache->isCached('discord_icon')) {
-                    $icon = '<i class="nav-icon fab fa-discord"></i>';
-                    $cache->store('discord_icon', $icon);
-                } else {
-                    $icon = $cache->retrieve('discord_icon');
-                }
-
-                $navs[2]->addItemToDropdown('integrations', 'discord', Discord::getLanguageTerm('discord'), URL::build('/panel/discord'), 'top', null, $icon, 1);
+                $navs[2]->addItemToDropdown('integrations', 'discord', Discord::getLanguageTerm('discord'), URL::build('/panel/discord'), 'top', null, '<i class="nav-icon fab fa-discord"></i>', 1);
             }
         }
     }

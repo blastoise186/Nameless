@@ -1,19 +1,21 @@
 <?php
-/*
- *  Made by Samerton
- *  https://github.com/NamelessMC/Nameless/
- *  NamelessMC version 2.1.0
+/**
+ * Forum - front page module
  *
- *  License: MIT
+ * @author Samerton
+ * @license MIT
+ * @version 2.3.0
  *
- *  Forum module - front page module
+ * @var Cache $cache
+ * @var Language $forum_language
+ * @var Language $language
+ * @var TemplateBase $template
+ * @var User $user
  */
 
 $groups_key = implode('-', $user->getAllGroupIds());
 $cache->setCache('news_cache');
-if ($cache->isCached('news-' . $groups_key)) {
-    $news = $cache->retrieve('news-' . $groups_key);
-} else {
+$news = $cache->fetch('news-' . $groups_key, function () use ($user) {
     $forum = new Forum();
 
     $latest_news = $forum->getLatestNews(
@@ -25,6 +27,8 @@ if ($cache->isCached('news-' . $groups_key)) {
 
     foreach ($latest_news as $item) {
         $post_user = new User($item['author']);
+        $render_event = new RenderContentEvent($item['content']);
+        EventHandler::executeEvent($render_event);
 
         $news[] = [
             'id' => $item['topic_id'],
@@ -42,21 +46,23 @@ if ($cache->isCached('news-' . $groups_key)) {
             'author_avatar' => $post_user->getAvatar(64),
             'author_group' => Output::getClean($post_user->getMainGroup()->name),
             'author_group_html' => $post_user->getMainGroup()->group_html,
-            'content' => EventHandler::executeEvent('renderPost', ['content' => $item['content']])['content'],
+            'content' => $render_event->content,
             'label' => $item['label'],
             'labels' => $item['labels']
         ];
     }
 
-    $cache->store('news-' . $groups_key, $news, 60);
-}
+    return $news;
+}, 60);
 
-$timeago = new TimeAgo(TIMEZONE);
+$timeAgo = new TimeAgo(TIMEZONE);
 foreach ($news as $key => $item) {
-    $news[$key]['time_ago'] = $timeago->inWords($item['time_ago'], $language);
+    $news[$key]['time_ago'] = $timeAgo->inWords($item['time_ago'], $language);
 }
 
-$smarty->assign('LATEST_ANNOUNCEMENTS', $forum_language->get('forum', 'latest_announcements'));
-$smarty->assign('READ_FULL_POST', $forum_language->get('forum', 'read_full_post'));
-$smarty->assign('NEWS', $news);
-$smarty->assign('NO_NEWS', $forum_language->get('forum', 'no_news'));
+$template->getEngine()->addVariables([
+    'LATEST_ANNOUNCEMENTS' => $forum_language->get('forum', 'latest_announcements'),
+    'READ_FULL_POST' => $forum_language->get('forum', 'read_full_post'),
+    'NEWS' => $news,
+    'NO_NEWS' => $forum_language->get('forum', 'no_news'),
+]);

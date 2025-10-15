@@ -8,7 +8,13 @@ abstract class AbstractWidget
     protected string $_module;
     protected ?string $_settings = null;
     protected bool $_requires_cookies = false;
-    protected Smarty $_smarty;
+    /**
+     * Will be removed in 2.3.0.
+     * @var Smarty|FakeSmarty|null
+     * @deprecated
+     */
+    protected $_smarty;
+    protected ?TemplateEngine $_engine;
     protected WidgetData $_data;
 
     private Cache $_cache;
@@ -74,13 +80,13 @@ abstract class AbstractWidget
     }
 
     /**
-     * Get Smarty instance in use by this widget.
+     * Get template engine in use by this widget.
      *
-     * @return Smarty Instance in use.
+     * @return TemplateEngine Engine in use.
      */
-    public function getSmarty(): ?Smarty
+    public function getTemplateEngine(): ?TemplateEngine
     {
-        return $this->_smarty;
+        return $this->_engine;
     }
 
     /**
@@ -95,7 +101,10 @@ abstract class AbstractWidget
     public function display(): string
     {
         if (defined('COOKIE_CHECK') && !COOKIES_ALLOWED && $this->_requires_cookies) {
-            return $this->_smarty->fetch('widgets/cookie_notice.tpl');
+            return
+                $this->_engine ?
+                    $this->_engine->fetch('widgets/cookie_notice.tpl') :
+                    $this->_smarty->fetch('widgets/cookie_notice.tpl');
         }
 
         return $this->_content;
@@ -128,33 +137,25 @@ abstract class AbstractWidget
             return $this->_data;
         }
 
-        $cache = $this->cache();
+        return $this->_data = $this->cache()->fetch($this->getName(), function () {
+            $row = DB::getInstance()->get('widgets', ['name', $this->getName()]);
+            if ($row->count()) {
+                $data = new WidgetData($row->first());
 
-        if ($cache->isCached($this->getName())) {
-            return $this->_data = new WidgetData($cache->retrieve($this->getName()));
-        }
+                return  $data;
+            }
 
-        $row = DB::getInstance()->get('widgets', ['name', $this->getName()]);
-        if ($row->count()) {
-            $data = new WidgetData($row->first());
-            $cache->store($this->getName(), $data);
+            // Widget not found in database, create it
+            DB::getInstance()->insert('widgets', $data = [
+                'name' => $this->getName(),
+                'enabled' => true,
+                'location' => 'right',
+                'order' => 10,
+                'pages' => '["index","forum"]',
+            ]);
 
-            return $this->_data = $data;
-        }
-
-        // Widget not found in database, create it
-        DB::getInstance()->insert('widgets', $data = [
-            'name' => $this->getName(),
-            'enabled' => true,
-            'location' => 'right',
-            'order' => 10,
-            'pages' => '["index","forum"]',
-        ]);
-
-        $data = new WidgetData((object) $data);
-        $cache->store($this->getName(), $data);
-
-        return $this->_data = $data;
+            return new WidgetData((object) $data);
+        }, 3600);
     }
 
     private function cache(): Cache

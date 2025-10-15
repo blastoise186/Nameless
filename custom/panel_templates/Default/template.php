@@ -1,33 +1,35 @@
 <?php
+
 /*
  *  Made by Coldfire
  *  https://coldfiredzn.com
  *
  *  For NamelessMC
  *  https://github.com/NamelessMC/Nameless/
- *  NamelessMC version 2.1.2
+ *  NamelessMC version 2.2.0
  *
- *  License: MIT
+ *  Licence: MIT
  *
- *  Default template
+ *  Default panel template
  */
 
 // Always have the following if statement around your class
 if (!class_exists('Default_Panel_Template')) {
-    class Default_Panel_Template extends TemplateBase
+    class Default_Panel_Template extends SmartyTemplateBase
     {
         private Language $_language;
 
         // Constructor - set template name, version, Nameless version and author here
-        public function __construct(Smarty $smarty, Language $language)
+        public function __construct(Language $language)
         {
             $this->_language = $language;
 
             parent::__construct(
                 'Default',  // Template name
-                '2.1.2',  // Template version
-                '2.1.2',  // Nameless version template is made for
-                '<a href="https://coldfiredzn.com" target="_blank">Coldfire</a>'  // Author, you can use HTML here
+                '2.2.3',  // Template version
+                '2.2.3',  // Nameless version template is made for
+                '<a href="https://coldfiredzn.com" target="_blank">Coldfire</a>',  // Author, you can use HTML here
+                __DIR__, // Specify the path to the template
             );
 
             $this->assets()->include([
@@ -41,7 +43,7 @@ if (!class_exists('Default_Panel_Template')) {
             $this->addCSSFiles([
                 (defined('CONFIG_PATH') ? CONFIG_PATH : '') . '/custom/panel_templates/Default/assets/css/sb-admin-2.min.css' => [],
                 'https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i' => [],
-                (defined('CONFIG_PATH') ? CONFIG_PATH : '') . '/custom/panel_templates/Default/assets/css/custom.css?v=211' => [],
+                (defined('CONFIG_PATH') ? CONFIG_PATH : '') . '/custom/panel_templates/Default/assets/css/custom.css?v=220' => [],
             ]);
 
             $this->addJSFiles([
@@ -118,7 +120,7 @@ if (!class_exists('Default_Panel_Template')) {
                 JS
             );
 
-            $smarty->assign('NAMELESS_LOGO', (defined('CONFIG_PATH') ? CONFIG_PATH : '') . '/core/assets/img/namelessmc_logo.png');
+            $this->getEngine()->addVariable('NAMELESS_LOGO', URL::buildAssetPath('/core/assets/img/namelessmc_logo.png'));
         }
 
         public function onPageLoad()
@@ -523,4 +525,5 @@ if (!class_exists('Default_Panel_Template')) {
     }
 }
 
-$template = new Default_Panel_Template($smarty, $language);
+/** @var Language $language */
+$template = new Default_Panel_Template($language);

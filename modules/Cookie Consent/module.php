@@ -1,12 +1,10 @@
 <?php
-/*
- *  Made by Samerton
- *  https://github.com/NamelessMC/Nameless/
- *  NamelessMC version 2.1.2
+/**
+ * NamelessMC Cookie Consent Module
  *
- *  License: MIT
- *
- *  Cookie Consent module file
+ * @author Samerton
+ * @version 2.2.0
+ * @license MIT
  */
 
 class CookieConsent_Module extends Module {
@@ -19,9 +17,9 @@ class CookieConsent_Module extends Module {
         $this->_cookie_language = $cookie_language;
 
         $name = 'Cookie Consent';
-        $author = '<a href="https://samerton.me" target="_blank" rel="nofollow noopener">Samerton</a>';
-        $module_version = '2.1.2';
-        $nameless_version = '2.1.2';
+        $author = '<a href="https://samerton.dev" target="_blank" rel="nofollow noopener">Samerton</a>';
+        $module_version = '2.2.3';
+        $nameless_version = '2.2.3';
 
         parent::__construct($this, $name, $author, $module_version, $nameless_version);
 
@@ -52,8 +50,9 @@ class CookieConsent_Module extends Module {
         // Not necessary for CookieConsent
     }
 
-    public function onPageLoad(User $user, Pages $pages, Cache $cache, Smarty $smarty, $navs, Widgets $widgets, ?TemplateBase $template) {
+    public function onPageLoad(User $user, Pages $pages, Cache $cache, $smarty, $navs, Widgets $widgets, TemplateBase $template) {
         $language = $this->_language;
+        $cookie_url = URL::build('/cookies');
 
         // AdminCP
         PermissionHandler::registerPermissions($language->get('moderator', 'staff_cp'), [
@@ -65,70 +64,42 @@ class CookieConsent_Module extends Module {
 
         if (defined('FRONT_END')) {
             // Add cookie page link
-            $cache->setCache('cookie_consent_module_cache');
-            if (!$cache->isCached('options')) {
-                $options = ['type' => 'opt-in', 'position' => 'bottom-right'];
-                $cache->store('options', $options);
-            } else {
-                $options = $cache->retrieve('options');
-            }
-
-            $cookie_url = URL::build('/cookies');
-
             // Add JS script
-            if ($template) {
-                $template->addCSSFiles([
-                    (defined('CONFIG_PATH') ? CONFIG_PATH : '') . '/modules/Cookie Consent/assets/css/cookieconsent.min.css' => [],
-                ]);
-                $template->addJSFiles([
-                    (defined('CONFIG_PATH') ? CONFIG_PATH : '') . '/modules/Cookie Consent/assets/js/cookieconsent.min.js' => [],
-                ]);
-                $template->addJSScript(
-                    CookieConsent::generateScript(
-                        array_merge($options, [
-                            'cookies' => $this->_cookie_language->get('cookie', 'cookies'),
-                            'message' => $this->_cookie_language->get('cookie', 'cookie_popup'),
-                            'dismiss' => $this->_cookie_language->get('cookie', 'cookie_popup_disallow'),
-                            'allow' => $this->_cookie_language->get('cookie', 'cookie_popup_allow'),
-                            'link' => $this->_cookie_language->get('cookie', 'cookie_popup_more_info'),
-                            'href' => $cookie_url,
-                        ])
-                    )
-                );
-            }
-
-            $smarty->assign([
-                'COOKIE_URL' => $cookie_url,
-                'COOKIE_NOTICE_HEADER' => $this->_cookie_language->get('cookie', 'cookie_notice'),
-                'COOKIE_NOTICE_BODY' => $this->_cookie_language->get('cookie', 'cookie_notice_info'),
-                'COOKIE_NOTICE_CONFIGURE' => $this->_cookie_language->get('cookie', 'configure_cookies'),
-                'COOKIE_DECISION_MADE' => (bool)Cookie::get('cookieconsent_status'),
+            $template->addCSSFiles([
+                (defined('CONFIG_PATH') ? CONFIG_PATH : '') . '/modules/Cookie Consent/assets/css/cookieconsent.min.css' => [],
             ]);
-
-            $navs[0]->add('cookies', $this->_cookie_language->get('cookie', 'cookie_notice'), $cookie_url, 'footer');
+            $template->addJSFiles([
+                (defined('CONFIG_PATH') ? CONFIG_PATH : '') . '/modules/Cookie Consent/assets/js/cookieconsent.min.js' => [],
+            ]);
+            $template->addJSScript(
+                CookieConsent::generateScript([
+                    'type' => 'opt-in',
+                    'position' => 'bottom-right',
+                    'cookies' => $this->_cookie_language->get('cookie', 'cookies'),
+                    'message' => $this->_cookie_language->get('cookie', 'cookie_popup'),
+                    'dismiss' => $this->_cookie_language->get('cookie', 'cookie_popup_disallow'),
+                    'allow' => $this->_cookie_language->get('cookie', 'cookie_popup_allow'),
+                    'link' => $this->_cookie_language->get('cookie', 'cookie_popup_more_info'),
+                    'href' => $cookie_url,
+                ])
+            );
         }
 
-        if (defined('BACK_END')) {
-            $cache->setCache('panel_sidebar');
+        $template->getEngine()->addVariables([
+            'COOKIE_URL' => $cookie_url,
+            'COOKIE_NOTICE_HEADER' => $this->_cookie_language->get('cookie', 'cookie_notice'),
+            'COOKIE_NOTICE_BODY' => $this->_cookie_language->get('cookie', 'cookie_notice_info'),
+            'COOKIE_NOTICE_CONFIGURE' => $this->_cookie_language->get('cookie', 'configure_cookies'),
+            'COOKIE_DECISION_MADE' => (bool)Cookie::get('cookieconsent_status'),
+        ]);
 
+        $navs[0]->add('cookies', $this->_cookie_language->get('cookie', 'cookie_notice'), $cookie_url, 'footer');
+
+        if (defined('BACK_END')) {
             // StaffCP link
             if ($user->hasPermission('admincp.cookies')) {
-                if (!$cache->isCached('cookie_order')) {
-                    $order = 10;
-                    $cache->store('cookie_order', 10);
-                } else {
-                    $order = $cache->retrieve('cookie_order');
-                }
-
-                if (!$cache->isCached('cookie_icon')) {
-                    $icon = '<i class="nav-icon fas fa-cookie-bite"></i>';
-                    $cache->store('cookie_icon', $icon);
-                } else {
-                    $icon = $cache->retrieve('cookie_icon');
-                }
-
-                $navs[2]->add('cookie_divider', mb_strtoupper($this->_cookie_language->get('cookie', 'cookies'), 'UTF-8'), 'divider', 'top', null, $order, '');
-                $navs[2]->add('cookie_settings', $this->_cookie_language->get('cookie', 'cookies'), URL::build('/panel/cookies'), 'top', null, $order + 0.1, $icon);
+                $navs[2]->add('cookie_divider', mb_strtoupper($this->_cookie_language->get('cookie', 'cookies'), 'UTF-8'), 'divider', 'top', null, 10, '');
+                $navs[2]->add('cookie_settings', $this->_cookie_language->get('cookie', 'cookies'), URL::build('/panel/cookies'), 'top', null, 10.1, '<i class="nav-icon fas fa-cookie-bite"></i>');
             }
         }
     }

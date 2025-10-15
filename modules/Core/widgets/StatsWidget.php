@@ -2,9 +2,9 @@
 /*
  *  Made by Samerton
  *  https://github.com/NamelessMC/Nameless/
- *  NamelessMC version 2.0.2
+ *  NamelessMC version 2.2.0
  *
- *  License: MIT
+ *  Licence: MIT
  *
  *  Statistics Widget // By Xemah // https://xemah.me
  */
@@ -14,11 +14,11 @@ class StatsWidget extends WidgetBase {
     private Cache $_cache;
     private Language $_language;
 
-    public function __construct(Smarty $smarty, Language $language, Cache $cache) {
+    public function __construct(TemplateEngine $engine, Language $language, Cache $cache) {
         $this->_module = 'Core';
         $this->_name = 'Statistics';
         $this->_description = 'Displays the basic statistics of your website.';
-        $this->_smarty = $smarty;
+        $this->_engine = $engine;
 
         $this->_cache = $cache;
         $this->_language = $language;
@@ -27,12 +27,7 @@ class StatsWidget extends WidgetBase {
     public function initialise(): void {
         $this->_cache->setCache('statistics');
 
-        if ($this->_cache->isCached('statistics')) {
-            $users_query = $this->_cache->retrieve('statistics');
-            $users_registered = $users_query['users_registered'];
-            $latest_member = $users_query['latest_member'];
-
-        } else {
+        $users_query = $this->_cache->fetch('statistics', function () {
             $users_query = DB::getInstance()->query('SELECT `id` FROM nl2_users ORDER BY `joined` DESC LIMIT 1')->first()->id;
             $users_registered = DB::getInstance()->query('SELECT COUNT(*) as c FROM nl2_users')->first()->c;
 
@@ -46,53 +41,34 @@ class StatsWidget extends WidgetBase {
                 'id' => Output::getClean($users_query)
             ];
 
-            $this->_cache->store(
-                'statistics',
-                [
-                    'users_registered' => $users_registered,
-                    'latest_member' => $latest_member
-                ],
-                120
-            );
+            return [
+                'users_registered' => $users_registered,
+                'latest_member' => $latest_member
+            ];
+        }, 120);
 
-        }
+        $users_registered = $users_query['users_registered'];
+        $latest_member = $users_query['latest_member'];
 
-        if (!$this->_cache->isCached('online_users')) {
-            $online_users = DB::getInstance()->query('SELECT COUNT(*) as c FROM nl2_users WHERE last_online > ?', [strtotime('-5 minutes')])->first()->c;
-            $this->_cache->store('online_users', $online_users, 60);
-        } else {
-            $online_users = $this->_cache->retrieve('online_users');
-        }
+        $online_users = $this->_cache->fetch('online_users', function () {
+            return DB::getInstance()->query('SELECT COUNT(*) as c FROM nl2_users WHERE last_online > ?', [strtotime('-5 minutes')])->first()->c;
+        }, 60);
 
-        if (!$this->_cache->isCached('online_guests')) {
-            try {
-                $online_guests = DB::getInstance()->query('SELECT COUNT(*) as c FROM nl2_online_guests WHERE last_seen > ?', [strtotime('-5 minutes')])->first()->c;
-                $this->_cache->store('online_guests', $online_guests, 60);
-            } catch (Exception $e) {
-                // Upgrade script hasn't been run
-                $online_guests = 0;
-            }
-        } else {
-            $online_guests = $this->_cache->retrieve('online_guests');
-        }
+        $online_guests = $this->_cache->fetch('online_guests', function () {
+            return DB::getInstance()->query('SELECT COUNT(*) as c FROM nl2_online_guests WHERE last_seen > ?', [strtotime('-5 minutes')])->first()->c;
+        }, 60);
 
         if (Util::isModuleEnabled('Forum')) {
             $this->_cache->setCache('forum_stats');
-            if (!$this->_cache->isCached('total_topics')) {
-                $total_topics = DB::getInstance()->query('SELECT COUNT(*) as c FROM nl2_topics WHERE deleted = 0')->first()->c;
-                $this->_cache->store('total_topics', $total_topics, 60);
-            } else {
-                $total_topics = $this->_cache->retrieve('total_topics');
-            }
+            $total_topics = $this->_cache->fetch('total_topics', function () {
+                return DB::getInstance()->query('SELECT COUNT(*) as c FROM nl2_topics WHERE deleted = 0')->first()->c;
+            }, 60);
 
-            if (!$this->_cache->isCached('total_posts')) {
-                $total_posts = DB::getInstance()->query('SELECT COUNT(*) as c FROM nl2_posts WHERE deleted = 0')->first()->c;
-                $this->_cache->store('total_posts', $total_posts, 60);
-            } else {
-                $total_posts = $this->_cache->retrieve('total_posts');
-            }
+            $total_posts = $this->_cache->fetch('total_posts', function () {
+                return DB::getInstance()->query('SELECT COUNT(*) as c FROM nl2_posts WHERE deleted = 0')->first()->c;
+            }, 60);
 
-            $this->_smarty->assign([
+            $this->_engine->addVariables([
                 'FORUM_STATISTICS' => $this->_language->get('general', 'forum_statistics'),
                 'TOTAL_THREADS' => $this->_language->get('general', 'total_threads'),
                 'TOTAL_THREADS_VALUE' => $total_topics,
@@ -101,7 +77,7 @@ class StatsWidget extends WidgetBase {
             ]);
         }
 
-        $this->_smarty->assign([
+        $this->_engine->addVariables([
             'STATISTICS' => $this->_language->get('general', 'statistics'),
             'USERS_REGISTERED' => $this->_language->get('general', 'users_registered'),
             'USERS_REGISTERED_VALUE' => $users_registered,
@@ -115,6 +91,6 @@ class StatsWidget extends WidgetBase {
             'TOTAL_ONLINE_VALUE' => $online_guests + $online_users,
         ]);
 
-        $this->_content = $this->_smarty->fetch('widgets/statistics.tpl');
+        $this->_content = $this->_engine->fetch('widgets/statistics');
     }
 }

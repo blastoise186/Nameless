@@ -1,16 +1,25 @@
 <?php
-/*
- *  Made by Samerton
- *  https://github.com/NamelessMC/Nameless/
- *  NamelessMC version 2.0.0-pr9
+/**
+ * Staff panel update page
  *
- *  License: MIT
+ * @author Samerton
+ * @license MIT
+ * @version 2.2.0
  *
- *  Panel update page
+ * @var Cache $cache
+ * @var FakeSmarty $smarty
+ * @var Language $language
+ * @var Navigation $cc_nav
+ * @var Navigation $navigation
+ * @var Navigation $staffcp_nav
+ * @var Pages $pages
+ * @var TemplateBase $template
+ * @var User $user
+ * @var Widgets $widgets
  */
 
 if (!$user->handlePanelPageLoad('admincp.update')) {
-    require_once(ROOT_PATH . '/403.php');
+    require_once ROOT_PATH . '/403.php';
     die();
 }
 
@@ -27,36 +36,31 @@ const PAGE = 'panel';
 const PARENT_PAGE = 'update';
 const PANEL_PAGE = 'update';
 $page_title = $language->get('admin', 'update');
-require_once(ROOT_PATH . '/core/templates/backend_init.php');
+require_once ROOT_PATH . '/core/templates/backend_init.php';
 
 // Load modules + template
 Module::loadPage($user, $pages, $cache, $smarty, [$navigation, $cc_nav, $staffcp_nav], $widgets, $template);
 
 if (isset($success)) {
-    $smarty->assign([
+    $template->getEngine()->addVariables([
         'SUCCESS' => $success,
-        'SUCCESS_TITLE' => $language->get('general', 'success')
+        'SUCCESS_TITLE' => $language->get('general', 'success'),
     ]);
 }
 
 if (isset($errors) && count($errors)) {
-    $smarty->assign([
+    $template->getEngine()->addVariables([
         'ERRORS' => $errors,
-        'ERRORS_TITLE' => $language->get('general', 'error')
+        'ERRORS_TITLE' => $language->get('general', 'error'),
     ]);
 }
 
 $cache->setCache('update_check');
-if ($cache->isCached('update_check')) {
-    $update_check = $cache->retrieve('update_check');
-} else {
-    $update_check = Util::updateCheck();
-    $cache->store('update_check', $update_check, 3600);
-}
+$update_check = $cache->fetch('update_check', fn () => Util::updateCheck(), 3600);
 
 if (!is_string($update_check)) {
     if ($update_check->updateAvailable()) {
-        $smarty->assign([
+        $template->getEngine()->addVariables([
             'NEW_UPDATE' => $update_check->isUrgent()
                 ? $language->get('admin', 'new_urgent_update_available')
                 : $language->get('admin', 'new_update_available'),
@@ -65,23 +69,21 @@ if (!is_string($update_check)) {
                 'version' => Output::getClean(NAMELESS_VERSION)
             ]),
             'NEW_VERSION' => $language->get('admin', 'new_version_x', [
-                'version' => Output::getClean($update_check->version())
+                'version' => Output::getClean($update_check->versionTag())
             ]),
             'INSTRUCTIONS' => $language->get('admin', 'instructions'),
             'INSTRUCTIONS_VALUE' => Output::getDecoded($update_check->instructions()),
             'UPGRADE_LINK' => URL::build('/panel/upgrade'),
             'DOWNLOAD_LINK' => $update_check->upgradeZipLink(),
             'DOWNLOAD' => $language->get('admin', 'download'),
-            'INSTALL_CONFIRM' => $language->get('admin', 'install_confirm')
+            'INSTALL_CONFIRM' => $language->get('admin', 'install_confirm'),
         ]);
     }
 } else {
-    $smarty->assign([
-        'UPDATE_CHECK_ERROR' => $update_check,
-    ]);
+    $template->getEngine()->addVariable('UPDATE_CHECK_ERROR', $update_check);
 }
 
-$smarty->assign([
+$template->getEngine()->addVariables([
     'PARENT_PAGE' => PARENT_PAGE,
     'DASHBOARD' => $language->get('admin', 'dashboard'),
     'UPDATE' => $language->get('admin', 'update'),
@@ -97,7 +99,7 @@ $smarty->assign([
 
 $template->onPageLoad();
 
-require(ROOT_PATH . '/core/templates/panel_navbar.php');
+require ROOT_PATH . '/core/templates/panel_navbar.php';
 
 // Display template
-$template->displayTemplate('core/update.tpl', $smarty);
+$template->displayTemplate('core/update');

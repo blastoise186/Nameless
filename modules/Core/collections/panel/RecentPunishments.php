@@ -2,34 +2,26 @@
 /*
  *  Made by Samerton
  *  https://github.com/NamelessMC/Nameless/
- *  NamelessMC version 2.0.0-pr8
+ *  NamelessMC version 2.2.0
  *
- *  License: MIT
+ *  Licence: MIT
  *
  *  Recent punishments dashboard collection item
  */
 
 class RecentPunishmentsItem extends CollectionItemBase {
 
-    private Smarty $_smarty;
+    private TemplateEngine $_engine;
     private Language $_language;
     private Cache $_cache;
 
-    public function __construct(Smarty $smarty, Language $language, Cache $cache) {
-        $cache->setCache('dashboard_main_items_collection');
-        if ($cache->isCached('recent_punishments')) {
-            $from_cache = $cache->retrieve('recent_punishments');
-            $order = $from_cache['order'] ?? 1;
-
-            $enabled = $from_cache['enabled'] ?? 1;
-        } else {
-            $order = 1;
-            $enabled = 1;
-        }
+    public function __construct(TemplateEngine $engine, Language $language, Cache $cache) {
+        $order = 1;
+        $enabled = 1;
 
         parent::__construct($order, $enabled);
 
-        $this->_smarty = $smarty;
+        $this->_engine = $engine;
         $this->_language = $language;
         $this->_cache = $cache;
     }
@@ -40,9 +32,7 @@ class RecentPunishmentsItem extends CollectionItemBase {
 
         $this->_cache->setCache('dashboard_main_items_collection');
 
-        if ($this->_cache->isCached('recent_punishments_data')) {
-            $data = $this->_cache->retrieve('recent_punishments_data');
-        } else {
+        $data = $this->_cache->fetch('recent_punishments_data', function () use ($timeago) {
             $query = DB::getInstance()->query('SELECT * FROM nl2_infractions ORDER BY `infraction_date` DESC LIMIT 5');
             $data = [];
 
@@ -110,11 +100,10 @@ class RecentPunishmentsItem extends CollectionItemBase {
                     ];
                 }
             }
+            return $data;
+        }, 60);
 
-            $this->_cache->store('recent_punishments_data', $data, 60);
-        }
-
-        $this->_smarty->assign([
+        $this->_engine->addVariables([
             'RECENT_PUNISHMENTS' => $this->_language->get('moderator', 'recent_punishments'),
             'PUNISHMENTS' => $data,
             'NO_PUNISHMENTS' => $this->_language->get('moderator', 'no_punishments_found'),
@@ -128,7 +117,7 @@ class RecentPunishmentsItem extends CollectionItemBase {
             'VIEW' => $this->_language->get('general', 'view')
         ]);
 
-        return $this->_smarty->fetch('collections/dashboard_items/recent_punishments.tpl');
+        return $this->_engine->fetch('collections/dashboard_items/recent_punishments');
     }
 
     public function getWidth(): float {

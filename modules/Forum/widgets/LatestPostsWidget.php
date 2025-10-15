@@ -16,17 +16,17 @@ class LatestPostsWidget extends WidgetBase {
     private Cache $_cache;
     private User $_user;
 
-    public function __construct(Language $forum_language, Smarty $smarty, Cache $cache, User $user, Language $language) {
+    public function __construct(Language $forum_language, TemplateEngine $engine, Cache $cache, User $user, Language $language) {
         $this->_module = 'Forum';
         $this->_name = 'Latest Posts';
         $this->_description = 'Display latest posts from your forum.';
         $this->_settings = ROOT_PATH . '/modules/Forum/widgets/admin/latest_posts.php';
-        $this->_smarty = $smarty;
+        $this->_engine = $engine;
         $this->_cache = $cache;
         $this->_user = $user;
         $this->_language = $language;
 
-        $this->_smarty->assign([
+        $this->_engine->addVariables([
             'LATEST_POSTS' => $forum_language->get('forum', 'latest_posts'),
             'NO_POSTS_FOUND' => $forum_language->get('forum', 'no_posts_found'),
             'BY' => $forum_language->get('forum', 'by'),
@@ -42,10 +42,7 @@ class LatestPostsWidget extends WidgetBase {
         $user_groups = $this->_user->getAllGroupIds();
 
         $this->_cache->setCache('forum_discussions_' . rtrim(implode('-', $user_groups), '-'));
-        if ($this->_cache->isCached('discussions')) {
-            $template_array = $this->_cache->retrieve('discussions');
-
-        } else {
+        $template_array = $this->_cache->fetch('discussions', function () use ($forum, $user_groups, $db, $timeago) {
             $limit = (int) Settings::get('latest_posts_limit', 5, 'Forum');
             // Generate latest posts
             $discussions = $forum->getLatestDiscussions($user_groups, ($this->_user->isLoggedIn() ? $this->_user->data()->id : 0), $limit);
@@ -115,12 +112,12 @@ class LatestPostsWidget extends WidgetBase {
                 ];
             }
 
-            $this->_cache->store('discussions', $template_array, 60);
-        }
+            return $template_array;
+        }, 60);
 
         // Generate HTML code for widget
-        $this->_smarty->assign('LATEST_POSTS_ARRAY', $template_array);
+        $this->_engine->addVariable('LATEST_POSTS_ARRAY', $template_array);
 
-        $this->_content = $this->_smarty->fetch('widgets/forum/latest_posts.tpl');
+        $this->_content = $this->_engine->fetch('widgets/forum/latest_posts');
     }
 }

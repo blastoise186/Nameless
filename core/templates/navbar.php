@@ -1,12 +1,18 @@
 <?php
-/*
- *  Made by Samerton
- *  https://github.com/NamelessMC/Nameless/
- *  NamelessMC version 2.2.0
+
+/**
+ * Navbar initialisation.
  *
- *  License: MIT
+ * @author Samerton
+ * @license MIT
+ * @version 2.2.0
  *
- *  Navbar generation
+ * @var Announcements $announcements
+ * @var Language      $language
+ * @var Navigation    $navigation
+ * @var TemplateBase  $template
+ * @var User          $user
+ * @var Widgets       $widgets
  */
 
 // User area - DEPRECATED, will be removed at some point
@@ -175,8 +181,8 @@ if ($user->isLoggedIn()) {
     ];
 }
 
-// Assign to Smarty variables
-$smarty->assign([
+// Assign to template variables
+$template->getEngine()->addVariables([
     'NAVBAR_INVERSE' => '',
     'SITE_NAME' => Output::getClean(SITE_NAME),
     'NAV_LINKS' => $navigation->returnNav('top'),
@@ -196,7 +202,7 @@ $smarty->assign([
 
 if ($user->isLoggedIn()) {
     // Get unread alerts and messages
-    $smarty->assign([
+    $template->getEngine()->addVariables([
         'ALERTS_LINK' => URL::build('/user/alerts'),
         'VIEW_ALERTS' => $language->get('user', 'view_alerts'),
         'MESSAGING_LINK' => URL::build('/user/messaging'),

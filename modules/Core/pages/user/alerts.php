@@ -9,12 +9,12 @@
 
 /**
  * @var Cache $cache
+ * @var FakeSmarty $smarty
  * @var Language $language
  * @var Navigation $cc_nav
  * @var Navigation $navigation
  * @var Navigation $staffcp_nav
  * @var Pages $pages
- * @var Smarty $smarty
  * @var TemplateBase $template
  * @var User $user
  * @var Widgets $widgets
@@ -67,16 +67,17 @@ if (!isset($_GET['view'])) {
         }
 
         if (Session::exists('alerts_error')) {
-            $smarty->assign('ERROR', Session::flash('alerts_error'));
+            $template->getEngine()->addVariable('ERROR', Session::flash('alerts_error'));
         }
 
         // Language values
-        $smarty->assign([
+        $template->getEngine()->addVariables([
             'USER_CP' => $language->get('user', 'user_cp'),
             'ALERTS' => $language->get('user', 'alerts'),
             'ALERTS_LIST' => $alerts,
             'DELETE_ALL' => $language->get('user', 'delete_all'),
             'DELETE_ALL_LINK' => URL::build('/user/alerts/', 'action=purge'),
+            'TOKEN' => Token::get(),
             'NO_ALERTS' => $language->get('user', 'no_alerts_usercp'),
         ]);
 
@@ -91,7 +92,7 @@ if (!isset($_GET['view'])) {
         require ROOT_PATH . '/core/templates/footer.php';
 
         // Display template
-        $template->displayTemplate('user/alerts.tpl', $smarty);
+        $template->displayTemplate('user/alerts');
 
     } elseif ($_GET['action'] == 'purge') {
         if (Token::check()) {
@@ -109,7 +110,7 @@ if (!isset($_GET['view'])) {
         Redirect::to(URL::build('/user/alerts'));
     }
 
-    // Check the alert belongs to the user...
+    // Check the alert belongs to the user
     $alert = DB::getInstance()->get('alerts', ['id', $_GET['view']]);
 
     if (!$alert->count() || $alert->first()->user_id !== $user->data()->id) {
@@ -139,21 +140,22 @@ if (!isset($_GET['view'])) {
     }
 
     if (Session::exists('alerts_error')) {
-        $smarty->assign('ERROR', Session::flash('alerts_error'));
+        $template->getEngine()->addVariable('ERROR', Session::flash('alerts_error'));
     }
 
     if ($alert->url && $alert->url !== '#') {
-        $smarty->assign([
+        $template->getEngine()->addVariables([
             'VIEW' => $language->get('user', 'alerts_follow_link'),
             'VIEW_LINK' => urlencode($alert->url),
         ]);
     }
 
-    $smarty->assign([
+    $template->getEngine()->addVariables([
         'USER_CP' => $language->get('user', 'user_cp'),
         'ALERTS' => $language->get('user', 'alerts'),
         'DELETE' => $language->get('general', 'delete'),
         'DELETE_LINK' => URL::build('/user/alerts/', 'view=' . $alert->id . '&delete'),
+        'TOKEN' => Token::get(),
         'ALERT_TITLE' => Output::getClean($alert->content),
         'ALERT_CONTENT' => $alert->bypass_purify ? $alert->content_rich : Output::getPurified($alert->content_rich),
         'ALERT_DATE' => date(DATE_FORMAT, $alert->created),
@@ -175,5 +177,5 @@ if (!isset($_GET['view'])) {
     require ROOT_PATH . '/core/templates/footer.php';
 
     // Display template
-    $template->displayTemplate('user/alert.tpl', $smarty);
+    $template->displayTemplate('user/alert.tpl');
 }

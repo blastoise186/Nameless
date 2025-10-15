@@ -1,24 +1,24 @@
 <?php
-/*
- *  Made by Samerton
- *  https://github.com/NamelessMC/Nameless/
- *  NamelessMC version 2.0.0-pr13
- *
- *  License: MIT
- *
- *  DefaultRevamp template settings
- */
 
+/**
+ * Default Revamp template settings.
+ *
+ * @author Samerton
+ * @version 2.2.0
+ * @license MIT
+ *
+ * @var Cache        $cache
+ * @var Language     $language
+ * @var TemplateBase $current_template
+ */
 if (Input::exists()) {
     if (Token::check()) {
-        $cache->setCache('template_settings');
-
         if (isset($_POST['darkMode'])) {
-            $cache->store('darkMode', $_POST['darkMode']);
+            Settings::set('dark_mode', $_POST['darkMode']);
         }
 
         if (isset($_POST['navbarColour'])) {
-            $cache->store('navbarColour', $_POST['navbarColour']);
+            Settings::set('default_revamp_navbar_color', $_POST['navbarColour']);
         }
 
         Settings::set('home_custom_content', Input::get('home_custom_content'));
@@ -30,20 +30,8 @@ if (Input::exists()) {
 }
 
 // Get values
-$cache->setCache('template_settings');
-if ($cache->isCached('darkMode')) {
-    $darkMode = $cache->retrieve('darkMode');
-} else {
-    $darkMode = '0';
-    $cache->store('darkMode', $darkMode);
-}
-
-if ($cache->isCached('navbarColour')) {
-    $navbarColour = $cache->retrieve('navbarColour');
-} else {
-    $navbarColour = 'white';
-    $cache->store('navbarColour', $navbarColour);
-}
+$darkMode = Settings::get('dark_mode', '0');
+$navbarColour = Settings::get('default_revamp_navbar_color', 'white');
 
 $nav_colours = [
     [
@@ -119,7 +107,7 @@ $current_template->assets()->include([
 
 $current_template->addJSScript(Input::createTinyEditor($language, 'inputHomeCustomContent', Settings::get('home_custom_content')));
 
-$smarty->assign([
+$current_template->getEngine()->addVariables([
     'SUBMIT' => $language->get('general', 'submit'),
     'ENABLED' => $language->get('admin', 'enabled'),
     'DISABLED' => $language->get('admin', 'disabled'),

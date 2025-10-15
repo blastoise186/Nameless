@@ -1,10 +1,11 @@
 <?php
+
 /**
  * Widget management class.
  *
  * @package NamelessMC\Misc
  * @author Samerton
- * @version 2.0.0-pr8
+ * @version 2.2.0
  * @license MIT
  */
 class Widgets
@@ -12,17 +13,23 @@ class Widgets
     private DB $_db;
     private Cache $_cache;
     private Language $_language;
-    private Smarty $_smarty;
+    private TemplateBase $_template;
 
     /** @var AbstractWidget[] */
     private array $_widgets = [];
     private array $_enabled = [];
     private string $_name;
 
+    /**
+     * @param Cache        $cache
+     * @param Language     $language
+     * @param TemplateBase $template
+     * @param string       $name
+     */
     public function __construct(
         Cache $cache,
         Language $language,
-        Smarty $smarty,
+        TemplateBase $template,
         string $name = 'core'
     ) {
         // Assign name to use in cache file
@@ -32,12 +39,18 @@ class Widgets
 
         $this->_db = DB::getInstance();
         $this->_language = $language;
-        $this->_smarty = $smarty;
+        $this->_template = $template;
 
-        $enabled = $this->_cache->retrieve('enabled');
-        if ($enabled !== null && count($enabled)) {
-            $this->_enabled = $enabled;
-        }
+        $this->_enabled = $this->_cache->fetch('enabled', function () {
+            // Fetch enabled widgets from database
+            $widgets = $this->_db->query('SELECT * FROM nl2_widgets WHERE enabled = 1')->results();
+            $enabled = [];
+            foreach ($widgets as $widget) {
+                $enabled[$widget->name] = true;
+            }
+
+            return $enabled;
+        });
     }
 
     /**
@@ -105,7 +118,7 @@ class Widgets
      *
      * @return array List of HTML to be displayed.
      */
-    public function getWidgets(string $location, User $profile_user = null): array
+    public function getWidgets(string $location, ?User $profile_user = null): array
     {
         $ret = [];
 
@@ -122,7 +135,7 @@ class Widgets
                 continue;
             }
 
-            if ((defined('CUSTOM_PAGE') && !in_array(CUSTOM_PAGE, $item->getPages())) || !in_array(PAGE, $item->getPages())) {
+            if (!((defined('CUSTOM_PAGE') && in_array(CUSTOM_PAGE, $item->getPages())) || in_array(PAGE, $item->getPages()))) {
                 continue;
             }
 
@@ -141,7 +154,7 @@ class Widgets
                 }
             } catch (Exception $e) {
                 ErrorHandler::logWarning('Unable to load widget ' . $item->getName() . ': ' . $e->getMessage());
-                $this->_smarty->assign([
+                $this->_template->getEngine()->addVariables([
                     'WIDGET_ERROR_TITLE' => $this->_language->get('general', 'unable_to_load_widget'),
                     'WIDGET_ERROR_CONTENT' => $this->_language->get('general', 'problem_loading_widget', [
                         'widget' => Output::getClean($item->getName()),
@@ -149,7 +162,7 @@ class Widgets
                     'WIDGET_ERROR_MESSAGE' => $e->getMessage(),
                     'WIDGET_NAME' => Output::getClean($item->getName()),
                 ]);
-                $ret[] = $this->_smarty->fetch('widgets/widget_error.tpl');
+                $ret[] = $this->_template->getEngine()->fetch('widgets/widget_error');
             }
         }
 

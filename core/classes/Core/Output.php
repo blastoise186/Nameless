@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Provides static methods for cleansing user input before storing in the database.
  *
@@ -43,10 +44,11 @@ class Output
      *
      * @param string|null $input          String which will be purified.
      * @param bool        $escape_invalid Should invalid HTML be escaped instead of fully removed?
+     * @param bool        $for_editor     Whether the purification is for use in the WYSIWYG editor or not, default true
      *
      * @return string Purified string.
      */
-    public static function getPurified(?string $input, bool $escape_invalid = false): string
+    public static function getPurified(?string $input, bool $escape_invalid = false, bool $for_editor = true): string
     {
         if (!isset(self::$_purifier)) {
             $purifierConfig = HTMLPurifier_Config::createDefault();
@@ -56,9 +58,10 @@ class Output
             $purifierConfig->set('URI.DisableExternalResources', false);
             $purifierConfig->set('URI.DisableResources', false);
             $purifierConfig->set('HTML.Allowed', 'u,a,p,p[style],b,i,small,blockquote,span[style],span[class],p,strong,em,li,ul,ol,div[align],br,img,figure,figcaption');
-            $purifierConfig->set('CSS.AllowedProperties', ['text-align', 'display', 'float', 'color', 'background-color', 'background', 'font-size', 'font-family', 'margin', 'margin-bottom', 'margin-left', 'margin-right', 'margin-top', 'padding', 'padding-bottom', 'padding-left', 'padding-right', 'padding-top', 'text-decoration', 'font-weight', 'font-style', 'font-size', 'vertical-align']);
+            $purifierConfig->set('CSS.AllowedProperties', ['text-align', 'display', 'float', 'color', 'background-color', 'background', 'font-size', 'font-family', 'margin', 'margin-bottom', 'margin-left', 'margin-right', 'margin-top', 'padding', 'padding-bottom', 'padding-left', 'padding-right', 'padding-top', 'text-decoration', 'font-weight', 'font-style', 'font-size', 'vertical-align', 'width', 'border-color', 'border-style']);
             $purifierConfig->set('CSS.AllowTricky', true);
             $purifierConfig->set('HTML.AllowedAttributes', 'target, rel, href, id, src, height, width, alt, class, *.style, dir');
+            $purifierConfig->set('HTML.ForbiddenAttributes', 'iframe@width,iframe@height');
             $purifierConfig->set('Attr.AllowedFrameTargets', ['_blank', '_self', '_parent', '_top']);
             $purifierConfig->set('Attr.AllowedRel', ['noopener', 'nofollow']);
             $purifierConfig->set('HTML.SafeIframe', true);
@@ -78,8 +81,14 @@ class Output
             self::$_purifier = new HTMLPurifier($purifierConfig);
         }
 
-        // Purify the string
-        return self::$_purifier->purify($input);
+        $purified = self::$_purifier->purify($input);
+
+        if ($for_editor) {
+            // Double encode &lt; and &gt; to prevent editor from parsing them
+            return str_replace(['&lt;', '&gt;'], ['&amp;lt;', '&amp;gt;'], $purified);
+        }
+
+        return $purified;
     }
 
     /**

@@ -23,13 +23,13 @@ class Announcement
         $this->icon = $row->icon;
         $this->closable = $row->closable;
         $this->header = Output::getClean($row->header);
-        $this->message = Output::getPurified($row->message);
+        $this->message = Output::getPurified($row->message, false, false);
         $this->order = $row->order;
     }
 
     public static function find(int $id): ?Announcement
     {
-        $row = DB::getInstance()->query('SELECT * FROM nl2_custom_announcements WHERE id = ?', [$id])->results();
+        $row = DB::getInstance()->query('SELECT * FROM nl2_announcements WHERE id = ?', [$id])->results();
 
         return $row
             ? new Announcement($row[0])

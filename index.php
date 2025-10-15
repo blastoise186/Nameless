@@ -1,8 +1,9 @@
 <?php
+
 /*
  *  Made by Samerton
  *  https://github.com/NamelessMC/Nameless/
- *  NamelessMC version 2.0.0-pr13
+ *  NamelessMC version 2.3.0
  *
  *  License: MIT
  *
@@ -18,15 +19,13 @@ if ((!defined('DEBUGGING') || !DEBUGGING) && (getenv('NAMELESS_DEBUGGING') || is
     define('DEBUGGING', true);
 }
 
-if (defined('DEBUGGING') && DEBUGGING) {
-    ini_set('display_startup_errors', 1);
-    ini_set('display_errors', 1);
-    error_reporting(-1);
-}
+// Disable display errors before vendor load
+ini_set('display_startup_errors', 0);
+ini_set('display_errors', 0);
 
-// Ensure PHP version >= 7.4
-if (PHP_VERSION_ID < 70400) {
-    die('NamelessMC is not compatible with PHP versions older than 7.4, you are running PHP ' . PHP_VERSION);
+// Ensure PHP version >= 8.2
+if (PHP_VERSION_ID < 80200) {
+    die('NamelessMC is not compatible with PHP versions older than 8.2, you are running PHP ' . PHP_VERSION);
 }
 
 // Start page load timer
@@ -46,6 +45,11 @@ const PATH = '/';
 const ROOT_PATH = __DIR__;
 
 require_once __DIR__ . '/vendor/autoload.php';
+
+if (defined('DEBUGGING') && DEBUGGING) {
+    ini_set('display_startup_errors', 1);
+    ini_set('display_errors', 1);
+}
 
 if (isset($_GET['route']) && $_GET['route'] == '/rewrite_test') {
     require_once('rewrite_test.php');

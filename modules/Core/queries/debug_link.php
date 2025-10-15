@@ -53,7 +53,7 @@ foreach ($templates_query as $fe_template) {
     $namelessmc_fe_templates[$fe_template->name] = [
         'name' => $fe_template->name,
         'enabled' => (bool)$fe_template->enabled,
-        'is_default' => (bool)$fe_template->is_default,
+        'is_default' => (bool)Settings::get('default_template') === $fe_template->name,
         'author' => $template->getAuthor(),
         'template_version' => $template->getVersion(),
         'namelessmc_version' => $template->getNamelessVersion(),
@@ -72,7 +72,7 @@ foreach ($panel_templates_query as $panel_template) {
     $namelessmc_panel_templates[$panel_template->name] = [
         'name' => $panel_template->name,
         'enabled' => (bool)$panel_template->enabled,
-        'is_default' => (bool)$panel_template->is_default,
+        'is_default' => (bool)Settings::get('default_panel_template') === $panel_template->name,
         'author' => $template->getAuthor(),
         'template_version' => $template->getVersion(),
         'namelessmc_version' => $template->getNamelessVersion(),
@@ -191,11 +191,22 @@ if ($user->isLoggedIn()) {
     }
 
     $user_data = [
-        'id' => (int) $user->data()->id,
+        'id' => (int)$user->data()->id,
         'username' => $user->data()->username,
         'nickname' => $user->getDisplayname(),
         'groups' => array_values($user->getAllGroupIds()),
         'integrations' => $user_integrations
+    ];
+}
+
+$group_sync_logs = [];
+$logs_set = DB::getInstance()->orderWhere('logs', 'action LIKE \'%_role_set\' OR action LIKE \'%_group_set\'OR action = \'mc_group_sync_set\' ', 'time', 'DESC LIMIT 50')->results();
+foreach ($logs_set as $log) {
+    $group_sync_logs[] = [
+        'time' => $log->time,
+        'user_id' => $log->user_id,
+        'action' => $log->action,
+        'info' => json_decode($log->info, true) ?? $log->info,
     ];
 }
 
@@ -247,6 +258,7 @@ $data = [
         'notice' => $logs['notice'],
         'other' => $logs['other'],
         'custom' => $logs['custom'],
+        'group_sync' => $group_sync_logs,
     ],
     'environment' => [
         'php_version' => PHP_VERSION,

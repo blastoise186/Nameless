@@ -1,4 +1,21 @@
 <?php
+/**
+ * Query to retrieve public data about a user
+ * Gets user ID from 'id' GET request
+ *
+ * @author Samerton
+ * @version 2.2.0
+ * @var Cache $cache
+ * @var FakeSmarty $smarty
+ * @var Navigation $cc_nav
+ * @var Navigation $navigation
+ * @var Navigation $staffcp_nav
+ * @var Pages $pages
+ * @var TemplateBase $template
+ * @var User $user
+ * @var Widgets $widgets
+ */
+
 // Check user ID is specified
 if (!isset($_GET['id'])) {
     die(json_encode(['html' => 'Error: Invalid ID']));
@@ -19,11 +36,7 @@ if (!is_numeric($_GET['id'])) {
     $id = 0;
 } else {
     $cache->setCache('user_query');
-
-    if ($cache->isCached($_GET['id'])) {
-        [$username, $nickname, $profile, $avatar, $style, $groups, $id] = $cache->retrieve($_GET['id']);
-
-    } else {
+    [$username, $nickname, $profile, $avatar, $style, $groups, $id] = $cache->fetch($_GET['id'], function () {
         $target_user = new User($_GET['id']);
         if (!$target_user->exists()) {
             die(json_encode(['html' => 'User not found']));
@@ -37,11 +50,11 @@ if (!is_numeric($_GET['id'])) {
         $groups = $target_user->getAllGroupHtml();
         $id = Output::getClean($target_user->data()->id);
 
-        $cache->store($_GET['id'], [$username, $nickname, $profile, $avatar, $style, $groups, $id], 60);
-    }
+        return [$username, $nickname, $profile, $avatar, $style, $groups, $id];
+    }, 60);
 }
 
-$smarty->assign([
+$template->getEngine()->addVariables([
     'PROFILE' => $profile,
     'USERNAME' => $username,
     'NICKNAME' => $nickname,
@@ -64,5 +77,5 @@ echo json_encode([
     'avatar' => $avatar,
     'style' => $style,
     'groups' => $groups,
-    'html' => $template->getTemplate('user_popover.tpl', $smarty)
+    'html' => $template->getTemplate('user_popover')
 ], JSON_PRETTY_PRINT);

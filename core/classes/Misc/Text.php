@@ -141,7 +141,7 @@ class Text
      * @param  string|null $force_style Style to apply to the emoji image, will use the site default if null
      * @return string      Text with emojis replaced with URLs to their Twemoji equivalent.
      */
-    public static function renderEmojis(string $text, string $force_style = null): string
+    public static function renderEmojis(string $text, ?string $force_style = null): string
     {
         $style = $force_style ?? Settings::get('emoji_style', 'twemoji');
         switch ($style) {
@@ -176,6 +176,9 @@ class Text
         ));
 
         $content = html_entity_decode($content);
+
+        // Also strip any mentions
+        $content = MentionsHook::stripContent($content);
 
         return self::truncate($content, 512, [
             'html' => true,

@@ -1,12 +1,21 @@
 <?php
-/*
- *  Made by Samerton
- *  https://github.com/NamelessMC/Nameless/
- *  NamelessMC version 2.0.2
+/**
+ * Staff panel authentication page
  *
- *  License: MIT
+ * @author Samerton
+ * @license MIT
+ * @version 2.2.0
  *
- *  Panel auth page
+ * @var Cache $cache
+ * @var FakeSmarty $smarty
+ * @var Language $language
+ * @var Navigation $cc_nav
+ * @var Navigation $navigation
+ * @var Navigation $staffcp_nav
+ * @var Pages $pages
+ * @var TemplateBase $template
+ * @var User $user
+ * @var Widgets $widgets
  */
 
 if ($user->isLoggedIn()) {
@@ -26,7 +35,7 @@ if ($user->isLoggedIn()) {
 const PAGE = 'panel';
 const PANEL_PAGE = 'auth';
 $page_title = $language->get('admin', 're-authenticate');
-require_once(ROOT_PATH . '/core/templates/backend_init.php');
+require_once ROOT_PATH . '/core/templates/backend_init.php';
 
 // Deal with any input
 if (Input::exists()) {
@@ -34,10 +43,9 @@ if (Input::exists()) {
         // Validate input
         $validation = Validate::check($_POST, [
             'password' => [
-                    Validate::REQUIRED => true
-                ]
+                Validate::REQUIRED => true
             ]
-        );
+        ]);
 
         if ($validation->passed()) {
             $user = new User();
@@ -51,7 +59,7 @@ if (Input::exists()) {
                     $user->data()->tfa_complete == 1
                 ) {
                     $success = false;
-                    $tfa = new \RobThree\Auth\TwoFactorAuth('NamelessMC');
+                    $tfa = new \RobThree\Auth\TwoFactorAuth(new \RobThree\Auth\Providers\Qr\QRServerProvider(), Output::getClean(SITE_NAME));
 
                     if ($tfa->verifyCode($user->data()->tfa_secret, str_replace(' ', '', $_POST['tfa_code'])) !== true) {
                         Session::flash('adm_auth_error', $language->get('user', 'invalid_tfa'));
@@ -88,7 +96,7 @@ if (Input::exists()) {
     }
 }
 
-$smarty->assign([
+$template->getEngine()->addVariables([
     'PLEASE_REAUTHENTICATE' => $language->get('admin', 're-authenticate'),
     'PASSWORD' => $language->get('user', 'password'),
     'TOKEN' => Token::get(),
@@ -101,14 +109,14 @@ if (
     $user->data()->tfa_type === 1 &&
     $user->data()->tfa_complete == 1
 ) {
-    $smarty->assign([
+    $template->getEngine()->addVariables([
         'TWO_FACTOR_AUTH' => $language->get('user', 'two_factor_auth'),
         'TFA_ENTER_CODE' => $language->get('user', 'two_factor_auth_code'),
     ]);
 }
 
 if (Session::exists('adm_auth_error')) {
-    $smarty->assign('ERROR', Session::flash('adm_auth_error'));
+    $template->getEngine()->addVariable('ERROR', Session::flash('adm_auth_error'));
 }
 
 // Load modules + template
@@ -116,7 +124,7 @@ Module::loadPage($user, $pages, $cache, $smarty, [$navigation, $cc_nav, $staffcp
 
 $template->onPageLoad();
 
-require(ROOT_PATH . '/core/templates/panel_navbar.php');
+require ROOT_PATH . '/core/templates/panel_navbar.php';
 
 // Display template
-$template->displayTemplate('auth.tpl', $smarty);
+$template->displayTemplate('auth');

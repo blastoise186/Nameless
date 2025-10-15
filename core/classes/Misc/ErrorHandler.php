@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Handles rendering the exception page as well as logging errors.
  *
@@ -78,6 +79,11 @@ class ErrorHandler
 
         // If this is an API request, print the error in plaintext and dont render the whole error trace page
         if (self::shouldUsePlainText()) {
+            if (!Debugging::canViewDetailedError()) {
+                // If we can't view the full error (i.e. not authenticated), show a simple message
+                die('Fatal error during request');
+            }
+
             die($error_string . ' in ' . $error_file . ' on line ' . $error_line . (!is_null($exception) ? PHP_EOL . $exception->getTraceAsString() : ''));
         }
 
@@ -132,7 +138,6 @@ class ErrorHandler
         $smarty->assign([
             'LANG' => defined('HTML_LANG') ? HTML_LANG : 'en',
             'RTL' => defined('HTML_RTL') && HTML_RTL === true ? ' dir="rtl"' : '',
-            'LANG_CHARSET' => defined('LANG_CHARSET') ? LANG_CHARSET : 'utf-8',
             'TITLE' => $language->get('errors', 'fatal_error') . ' - ' . $site_name,
             'SITE_NAME' => $site_name,
             'FOMANTIC_JS' => $path . 'vendor/fomantic-ui/dist/semantic.min.js',

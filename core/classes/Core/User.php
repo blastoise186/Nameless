@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Represents a user, logged in or not.
  *
@@ -67,7 +68,7 @@ class User
      */
     private bool $_isAdmLoggedIn = false;
 
-    public function __construct(string $user = null, string $field = 'id')
+    public function __construct(?string $user = null, string $field = 'id')
     {
         $this->_db = DB::getInstance();
         $this->_sessionName = Config::get('session.session_name');
@@ -624,7 +625,6 @@ class User
 
         if (!count($this->_groups)) {
             // Get default group
-            // TODO: Use PRE_VALIDATED_DEFAULT ?
             $default_group = Group::find(1, 'default_group');
             $default_group_id = $default_group->id ?? 1;
 
@@ -650,7 +650,7 @@ class User
         if (isset(self::$_integration_cache[$this->data()->id])) {
             $integrations_query = self::$_integration_cache[$this->data()->id];
         } else {
-            $integrations_query = $this->_db->query('SELECT nl2_users_integrations.*, nl2_integrations.name as integration_name FROM nl2_users_integrations LEFT JOIN nl2_integrations ON integration_id=nl2_integrations.id WHERE user_id = ?', [$this->data()->id]);
+            $integrations_query = $this->_db->query('SELECT nl2_users_integrations.*, nl2_integrations.name as integration_name FROM nl2_users_integrations LEFT JOIN nl2_integrations ON integration_id = nl2_integrations.id WHERE user_id = ?', [$this->data()->id]);
             if ($integrations_query->count()) {
                 $integrations_query = $integrations_query->results();
             } else {
@@ -817,14 +817,17 @@ class User
     }
 
     /**
-     * Get a comma separated string of all other users.
+     * Get a comma separated string of all other users who have not blocked this user.
      * For the new private message dropdown.
      *
      * @return array Array of usernames.
      */
     public function listAllOtherUsers(): array
     {
-        $data = $this->_db->query('SELECT `username` FROM `nl2_users` WHERE `id` <> ?', [$this->data()->id])->results();
+        $data = $this->_db->query(
+            'SELECT u.username FROM nl2_users u WHERE u.id <> ? AND u.id NOT IN (SELECT user_id FROM nl2_blocked_users bu WHERE bu.user_blocked_id = ?)',
+            [$this->data()->id, $this->data()->id]
+        )->results();
         $return = [];
 
         foreach ($data as $item) {
@@ -966,7 +969,7 @@ class User
      * @param  string|null $permission Permission required for this page.
      * @return bool
      */
-    public function handlePanelPageLoad(string $permission = null): bool
+    public function handlePanelPageLoad(?string $permission = null): bool
     {
         // Set page user is trying to access in session, to allow for redirection post-auth
         if (FRIENDLY_URLS === true) {
@@ -1065,20 +1068,10 @@ class User
      */
     public function isBlocked(int $user, int $blocked): bool
     {
-        if ($user && $blocked) {
-            $possible_users = $this->_db->get('blocked_users', ['user_id', $user]);
-            if ($possible_users->count()) {
-                $possible_users = $possible_users->results();
-
-                foreach ($possible_users as $possible_user) {
-                    if ($possible_user->user_blocked_id == $blocked) {
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return false;
+        return DB::getInstance()->query(
+            'SELECT 1 FROM nl2_blocked_users WHERE user_id = ? AND user_blocked_id = ?',
+            [$user, $blocked]
+        )->exists();
     }
 
     /**

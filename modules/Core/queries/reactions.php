@@ -1,4 +1,19 @@
 <?php
+/**
+ * Query to retrieve reactions data
+ *
+ * @author Aberdeener
+ * @version 2.2.0
+ * @var Cache $cache
+ * @var FakeSmarty $smarty
+ * @var Navigation $cc_nav
+ * @var Navigation $navigation
+ * @var Navigation $staffcp_nav
+ * @var Pages $pages
+ * @var TemplateBase $template
+ * @var User $user
+ * @var Widgets $widgets
+ */
 
 // TODO: Alert notifications for reactions? We should add some sort of debounce to prevent spamming notifications
 
@@ -120,13 +135,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         return $a['order'] - $b['order'];
     });
 
-    $smarty->assign([
+    $template->getEngine()->addVariables([
         'ACTIVE_TAB' => $_GET['tab'],
         'REACTIONS' => $formatted_reactions,
     ]);
 
     // modal
-    die($template->getTemplate('reactions_modal.tpl', $smarty));
+    die($template->getTemplate('reactions_modal'));
 }
 
 // add reaction
@@ -150,6 +165,12 @@ if ($reaction_id = $reaction_context->hasReacted($user, $reaction, $reactable_id
 }
 
 $receiver = $reaction_context->determineReceiver($reactable);
+
+if ($receiver->data()->id === $user->data()->id) {
+    http_response_code(\Symfony\Component\HttpFoundation\Response::HTTP_BAD_REQUEST);
+    die('You cannot react to your own content');
+}
+
 $reaction_context->giveReaction($user, $receiver, $reaction, $reactable_id);
 EventHandler::executeEvent(new UserReactionAddedEvent(
     $user,

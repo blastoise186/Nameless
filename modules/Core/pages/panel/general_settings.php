@@ -1,16 +1,25 @@
 <?php
-/*
- *  Made by Samerton
- *  https://github.com/NamelessMC/Nameless/
- *  NamelessMC version 2.0.0-pr12
+/**
+ * Staff panel general settings page
  *
- *  License: MIT
+ * @author Samerton
+ * @license MIT
+ * @version 2.2.0
  *
- *  Panel general settings page
+ * @var Cache $cache
+ * @var FakeSmarty $smarty
+ * @var Language $language
+ * @var Navigation $cc_nav
+ * @var Navigation $navigation
+ * @var Navigation $staffcp_nav
+ * @var Pages $pages
+ * @var TemplateBase $template
+ * @var User $user
+ * @var Widgets $widgets
  */
 
 if (!$user->handlePanelPageLoad('admincp.core.general')) {
-    require_once(ROOT_PATH . '/403.php');
+    require_once ROOT_PATH . '/403.php';
     die();
 }
 
@@ -18,7 +27,7 @@ const PAGE = 'panel';
 const PARENT_PAGE = 'core_configuration';
 const PANEL_PAGE = 'general_settings';
 $page_title = $language->get('admin', 'general_settings');
-require_once(ROOT_PATH . '/core/templates/backend_init.php');
+require_once ROOT_PATH . '/core/templates/backend_init.php';
 
 // Handle input
 if (isset($_GET['do'])) {
@@ -104,11 +113,7 @@ if (Input::exists()) {
             $cache->store('language', $language_short_code);
 
             // Timezone
-            try {
-                Settings::set('timezone', $_POST['timezone']);
-            } catch (Exception $e) {
-                $errors = [$e->getMessage()];
-            }
+            Settings::set('timezone', $_POST['timezone']);
 
             // Default Homepage
             Settings::set('home_type', $_POST['homepage']);
@@ -189,16 +194,16 @@ if (Session::exists('general_language')) {
 }
 
 if (isset($success)) {
-    $smarty->assign([
+    $template->getEngine()->addVariables([
         'SUCCESS_TITLE' => $language->get('general', 'success'),
-        'SUCCESS' => $success
+        'SUCCESS' => $success,
     ]);
 }
 
 if (isset($errors) && count($errors)) {
-    $smarty->assign([
+    $template->getEngine()->addVariables([
         'ERRORS_TITLE' => $language->get('general', 'error'),
-        'ERRORS' => $errors
+        'ERRORS' => $errors,
     ]);
 }
 
@@ -245,7 +250,7 @@ foreach ($pages->returnPages() as $key => $page) {
     ];
 }
 
-$smarty->assign([
+$template->getEngine()->addVariables([
     'PARENT_PAGE' => PARENT_PAGE,
     'DASHBOARD' => $language->get('admin', 'dashboard'),
     'CONFIGURATION' => $language->get('admin', 'configuration'),
@@ -318,7 +323,7 @@ $smarty->assign([
 
 $template->onPageLoad();
 
-require(ROOT_PATH . '/core/templates/panel_navbar.php');
+require ROOT_PATH . '/core/templates/panel_navbar.php';
 
 // Display template
-$template->displayTemplate('core/general_settings.tpl', $smarty);
+$template->displayTemplate('core/general_settings');

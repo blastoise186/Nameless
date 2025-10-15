@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Creates a singleton connection to the database with credentials from the config file.
  *
@@ -263,7 +264,7 @@ class DB
      * @param  bool   $isSelect Whether the statement is a select, defaults to null
      * @return static This DB instance.
      */
-    public function query(string $sql, array $params = [], bool $isSelect = null)
+    public function query(string $sql, array $params = [], ?bool $isSelect = null)
     {
         $this->_error = false;
         if ($this->_statement = $this->_pdo->prepare($sql)) {
@@ -312,7 +313,7 @@ class DB
      */
     private function action(string $action, string $table, array $where = [])
     {
-        [$where, $where_params] = $this->makeWhere($where);
+        [$where, $where_params] = self::makeWhere($where);
 
         $table = $this->_prefix . $table;
         $sql = "{$action} FROM {$table} {$where}";
@@ -377,7 +378,7 @@ class DB
             $where = ['id', '=', $where];
         }
 
-        [$where, $where_params] = $this->makeWhere($where);
+        [$where, $where_params] = self::makeWhere($where);
         $table = $this->_prefix . $table;
 
         $sql = "UPDATE {$table} SET {$set} $where";
@@ -528,7 +529,7 @@ class DB
         $where_clauses = [];
         foreach ($clauses as $clause) {
             if (!is_array($clause)) {
-                continue;
+                throw new InvalidArgumentException('Where clause must be an array');
             }
 
             if (count($clause) !== count($clause, COUNT_RECURSIVE)) {

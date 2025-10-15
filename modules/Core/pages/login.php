@@ -1,12 +1,21 @@
 <?php
-/*
- *  Made by Samerton
- *  https://github.com/NamelessMC/Nameless/
- *  NamelessMC version 2.0.0-pr12
+/**
+ * Login page
  *
- *  License: MIT
+ * @author Samerton
+ * @license MIT
+ * @version 2.2.0
  *
- *  Login page
+ * @var Cache $cache
+ * @var FakeSmarty $smarty
+ * @var Language $language
+ * @var Navigation $cc_nav
+ * @var Navigation $navigation
+ * @var Navigation $staffcp_nav
+ * @var Pages $pages
+ * @var TemplateBase $template
+ * @var User $user
+ * @var Widgets $widgets
  */
 
 // Set page name variable
@@ -60,7 +69,6 @@ if (Input::exists()) {
                     'email' => [
                         Validate::REQUIRED => true,
                         Validate::IS_BANNED => true,
-                        Validate::IS_ACTIVE => true,
                         Validate::RATE_LIMIT => $rate_limit,
                     ],
                     'password' => [
@@ -72,7 +80,6 @@ if (Input::exists()) {
                     'username' => [
                         Validate::REQUIRED => true,
                         Validate::IS_BANNED => true,
-                        Validate::IS_ACTIVE => true,
                         Validate::RATE_LIMIT => $rate_limit,
                     ],
                     'password' => [
@@ -113,9 +120,17 @@ if (Input::exists()) {
 
                 $user_query = new User($username, $method_field);
                 if ($user_query->exists()) {
-                    if ($user_query->data()->tfa_enabled == 1 && $user_query->data()->tfa_complete == 1) {
-                        // Verify password first
-                        if ($user->checkCredentials($username, Input::get('password'), $method_field)) {
+                    // Verify password first
+                    if ($user->checkCredentials($username, Input::get('password'), $method_field)) {
+
+                        // Ensure a user is active
+                        if (!$user->data()->active) {
+                            Session::put('validate_email', Output::getClean($user->data()->email));
+                            Redirect::to('/validate');
+                        }
+
+                        // Handle 2FA if enabled
+                        if ($user_query->data()->tfa_enabled == 1 && $user_query->data()->tfa_complete == 1) {
                             if (!isset($_POST['tfa_code'])) {
                                 if ($user_query->data()->tfa_type == 0) {
                                     // Emails
@@ -130,7 +145,7 @@ if (Input::exists()) {
                                 // Validate code
                                 if ($user_query->data()->tfa_type == 1) {
                                     // App
-                                    $tfa = new \RobThree\Auth\TwoFactorAuth('NamelessMC');
+                                    $tfa = new \RobThree\Auth\TwoFactorAuth(new \RobThree\Auth\Providers\Qr\QRServerProvider(), Output::getClean(SITE_NAME));
 
                                     if ($tfa->verifyCode($user_query->data()->tfa_secret, str_replace(' ', '', $_POST['tfa_code'])) !== true) {
                                         Session::flash('tfa_signin', $language->get('user', 'invalid_tfa'));
@@ -142,9 +157,9 @@ if (Input::exists()) {
                                     // TODO
                                 }
                             }
-                        } else {
-                            $return_error = [$language->get('user', 'incorrect_details')];
                         }
+                    } else {
+                        $return_error = [$language->get('user', 'incorrect_details')];
                     }
 
                     if (!isset($return_error)) {
@@ -253,13 +268,13 @@ Session::put('oauth_method', 'login');
 // Sign in template
 // Generate content
 if ($login_method == 'email') {
-    $smarty->assign('EMAIL', $language->get('user', 'email'));
+    $template->getEngine()->addVariable('EMAIL', $language->get('user', 'email'));
 } else if ($login_method == 'email_or_username') {
-    $smarty->assign('USERNAME', $language->get('user', 'email_or_username'));
+    $template->getEngine()->addVariable('USERNAME', $language->get('user', 'email_or_username'));
 } else if (Settings::get('mc_integration')) {
-    $smarty->assign('USERNAME', $language->get('user', 'minecraft_username'));
+    $template->getEngine()->addVariable('USERNAME', $language->get('user', 'minecraft_username'));
 } else {
-    $smarty->assign('USERNAME', $language->get('user', 'username'));
+    $template->getEngine()->addVariable('USERNAME', $language->get('user', 'username'));
 }
 
 // Add "login with..." message to provider array
@@ -274,7 +289,7 @@ foreach (NamelessOAuth::getInstance()->getProvidersAvailable() as $name => $prov
     ]);
 }
 
-$smarty->assign([
+$template->getEngine()->addVariables([
     'USERNAME_INPUT' => ($login_method == 'email' ? Output::getClean(Input::get('email')) : Output::getClean(Input::get('username'))),
     'PASSWORD' => $language->get('user', 'password'),
     'REMEMBER_ME' => $language->get('user', 'remember_me'),
@@ -293,17 +308,20 @@ $smarty->assign([
 ]);
 
 if (Session::exists('oauth_error')) {
-    $smarty->assign('ERROR', [Session::flash('oauth_error')]);
+    $template->getEngine()->addVariable('ERROR', [Session::flash('oauth_error')]);
 } else if (isset($return_error)) {
-    $smarty->assign('ERROR', $return_error);
+    $template->getEngine()->addVariable('ERROR', $return_error);
 }
 
 if (Session::exists('login_success')) {
-    $smarty->assign('SUCCESS', Session::flash('login_success'));
+    $template->getEngine()->addVariables([
+        'SUCCESS' => Session::flash('login_success'),
+        'SUCCESS_TITLE' => $language->get('general', 'success'),
+    ]);
 }
 
 if ($captcha) {
-    $smarty->assign('CAPTCHA', CaptchaBase::getActiveProvider()->getHtml());
+    $template->getEngine()->addVariable('CAPTCHA', CaptchaBase::getActiveProvider()->getHtml());
     $template->addJSFiles([CaptchaBase::getActiveProvider()->getJavascriptSource() => []]);
 
     $submitScript = CaptchaBase::getActiveProvider()->getJavascriptSubmit('form-login');
@@ -322,8 +340,8 @@ Module::loadPage($user, $pages, $cache, $smarty, [$navigation, $cc_nav, $staffcp
 
 $template->onPageLoad();
 
-require(ROOT_PATH . '/core/templates/navbar.php');
-require(ROOT_PATH . '/core/templates/footer.php');
+require ROOT_PATH . '/core/templates/navbar.php';
+require ROOT_PATH . '/core/templates/footer.php';
 
 // Display template
-$template->displayTemplate('login.tpl', $smarty);
+$template->displayTemplate('login');

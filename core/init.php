@@ -1,4 +1,5 @@
 <?php
+
 /*
  *  Made by Samerton
  *  https://github.com/NamelessMC/Nameless/
@@ -134,11 +135,9 @@ if ($page != 'install') {
         }
     }
 
-    $smarty = $container->get(Smarty::class);
-
     if ((defined('DEBUGGING') && DEBUGGING) && class_exists('DebugBar\DebugBar')) {
         define('PHPDEBUGBAR', true);
-        DebugBarHelper::getInstance()->enable($smarty);
+        DebugBarHelper::getInstance()->enable();
     }
 
     // Get the Nameless version
@@ -198,17 +197,14 @@ if ($page != 'install') {
 
     // Language
     $cache->setCache('languagecache');
-    if ($cache->isCached('language')) {
-        $default_language = $cache->retrieve('language');
-    } else {
+    $default_language = $cache->fetch('language', function () {
         $default_language = DB::getInstance()->get('languages', ['is_default', true])->results();
         if (count($default_language)) {
-            $default_language = $default_language[0]->short_code;
-            $cache->store('language', $default_language);
-        } else {
-            $default_language = 'en_UK';
+            return $default_language[0]->short_code;
         }
-    }
+
+        return 'en_UK';
+    });
 
     define('DEFAULT_LANGUAGE', $default_language);
 
@@ -217,7 +213,7 @@ if ($page != 'install') {
             // Attempt to get the requested language from the browser if it exists
             $automatic_locale = Language::acceptFromHttp(HttpUtils::getHeader('Accept-Language') ?? '');
             if ($automatic_locale !== false) {
-                $smarty->assign('AUTO_LANGUAGE_VALUE', $automatic_locale[1]);
+                define('AUTO_LANGUAGE_VALUE', $automatic_locale[1]);
                 $default_language = $automatic_locale[0];
             }
         }
@@ -250,27 +246,13 @@ if ($page != 'install') {
     // Template
     if (!$user->isLoggedIn() || !$user->data()->theme_id) {
         // Default template for guests
-        $cache->setCache('templatecache');
-        $template = $cache->retrieve('default');
-
-        if (!$template) {
-            define('TEMPLATE', 'DefaultRevamp');
-        } else {
-            define('TEMPLATE', $template);
-        }
+        define('TEMPLATE', Settings::get('default_template', 'DefaultRevamp'));
     } else {
         // User selected template
         $template = DB::getInstance()->get('templates', ['id', $user->data()->theme_id])->results();
         if (!count($template)) {
             // Get default template
-            $cache->setCache('templatecache');
-            $template = $cache->retrieve('default');
-
-            if (!$template) {
-                define('TEMPLATE', 'DefaultRevamp');
-            } else {
-                define('TEMPLATE', $template);
-            }
+            define('TEMPLATE', Settings::get('default_template', 'DefaultRevamp'));
         } else {
             // Check permissions
             $template = $template[0];
@@ -290,104 +272,13 @@ if ($page != 'install') {
 
             if (!$hasPermission) {
                 // Get default template
-                $cache->setCache('templatecache');
-                $template = $cache->retrieve('default');
-
-                if (!$template) {
-                    define('TEMPLATE', 'DefaultRevamp');
-                } else {
-                    define('TEMPLATE', $template);
-                }
+                define('TEMPLATE', Settings::get('default_template', 'DefaultRevamp'));
             }
         }
     }
 
     // Panel template
-    $cache->setCache('templatecache');
-    $template = $cache->retrieve('panel_default');
-
-    if (!$template) {
-        define('PANEL_TEMPLATE', 'Default');
-    } else {
-        define('PANEL_TEMPLATE', $template);
-    }
-
-    // Smarty
-    $securityPolicy = new Smarty_Security($smarty);
-    $securityPolicy->php_modifiers = [
-        'escape',
-        'count',
-        'key',
-        'round',
-        'ucfirst',
-        'defined',
-        'date',
-        'explode',
-        'implode',
-        'strtolower',
-        'strtoupper',
-    ];
-    $securityPolicy->php_functions = [
-        'isset',
-        'empty',
-        'count',
-        'sizeof',
-        'in_array',
-        'is_array',
-        'time',
-        'nl2br',
-        'is_numeric',
-        'file_exists',
-        'array_key_exists',
-    ];
-    $securityPolicy->secure_dir = [ROOT_PATH . '/custom/templates', ROOT_PATH . '/custom/panel_templates'];
-    $smarty->enableSecurity($securityPolicy);
-
-    // Basic Smarty variables
-    $smarty->assign([
-        'CONFIG_PATH' => defined('CONFIG_PATH') ? CONFIG_PATH . '/' : '/',
-        'OG_URL' => Output::getClean(rtrim(URL::getSelfURL(), '/') . $_SERVER['REQUEST_URI']),
-        'SITE_NAME' => Output::getClean(SITE_NAME),
-        'SITE_HOME' => URL::build('/'),
-        'USER_INFO_URL' => URL::build('/queries/user/', 'id='),
-        'GUEST' => $language->get('user', 'guest'),
-    ]);
-    $cache->setCache('backgroundcache');
-    if ($cache->isCached('og_image')) {
-        // Assign the image value now, some pages may override it (via Page Metadata config)
-        $smarty->assign('OG_IMAGE', rtrim(URL::getSelfURL(), '/') . $cache->retrieve('og_image'));
-    }
-
-    // Avatars
-    $cache->setCache('avatar_settings_cache');
-    if ($cache->isCached('custom_avatars') && $cache->retrieve('custom_avatars') == 1) {
-        define('CUSTOM_AVATARS', true);
-    }
-
-    if ($cache->isCached('default_avatar_type')) {
-        define('DEFAULT_AVATAR_TYPE', $cache->retrieve('default_avatar_type'));
-        if (DEFAULT_AVATAR_TYPE == 'custom' && $cache->isCached('default_avatar_image')) {
-            define('DEFAULT_AVATAR_IMAGE', $cache->retrieve('default_avatar_image'));
-        } else {
-            define('DEFAULT_AVATAR_IMAGE', '');
-        }
-    } else {
-        define('DEFAULT_AVATAR_TYPE', 'minecraft');
-    }
-
-    if ($cache->isCached('avatar_source')) {
-        define('DEFAULT_AVATAR_SOURCE', $cache->retrieve('avatar_source'));
-    } else {
-        define('DEFAULT_AVATAR_SOURCE', 'cravatar');
-    }
-
-    if ($cache->isCached('avatar_perspective')) {
-        define('DEFAULT_AVATAR_PERSPECTIVE', $cache->retrieve('avatar_perspective'));
-    } else {
-        define('DEFAULT_AVATAR_PERSPECTIVE', 'face');
-    }
-
-    $widgets = $container->get(Widgets::class);
+    define('PANEL_TEMPLATE', Settings::get('default_panel_template', 'Default'));
 
     // Navbar links
     $navigation = new Navigation();
@@ -411,20 +302,10 @@ if ($page != 'install') {
     // Add homepage to navbar
     // Check navbar order + icon in cache
     $cache->setCache('navbar_order');
-    if (!$cache->isCached('index_order')) {
-        // Create cache entry now
-        $home_order = 1;
-        $cache->store('index_order', 1);
-    } else {
-        $home_order = $cache->retrieve('index_order');
-    }
+    $home_order = $cache->fetch('index_order', 1);
 
     $cache->setCache('navbar_icons');
-    if ($cache->isCached('index_icon')) {
-        $home_icon = $cache->retrieve('index_icon');
-    } else {
-        $home_icon = '';
-    }
+    $home_icon = $cache->fetch('index_icon', '');
 
     $navigation->add('index', $language->get('general', 'home'), URL::build('/'), 'top', null, $home_order, $home_icon);
 
@@ -497,7 +378,7 @@ if ($page != 'install') {
             }
         } else {
             // Display notice to admin stating maintenance mode is enabled
-            $smarty->assign('MAINTENANCE_ENABLED', $language->get('admin', 'maintenance_enabled'));
+            define('BYPASS_MAINTENANCE', true);
         }
     }
 
@@ -505,10 +386,9 @@ if ($page != 'install') {
     $hook_array = [];
     if (Util::isModuleEnabled('Discord Integration')) {
         $cache->setCache('hooks');
-        if ($cache->isCached('hooks')) {
-            $hook_array = $cache->retrieve('hooks');
-        } else {
+        $hook_array = $cache->fetch('hooks', function () {
             $hooks = DB::getInstance()->get('hooks', ['id', '<>', 0])->results();
+            $hook_array = [];
             if (count($hooks)) {
                 foreach ($hooks as $hook) {
                     if ($hook->action != 1 && $hook->action != 2) {
@@ -529,9 +409,10 @@ if ($page != 'install') {
                         'events' => json_decode($hook->events, true),
                     ];
                 }
-                $cache->store('hooks', $hook_array);
             }
-        }
+
+            return $hook_array;
+        });
     }
     EventHandler::registerWebhooks($hook_array);
 
@@ -632,26 +513,6 @@ if ($page != 'install') {
                 'identifier' => Output::getClean($integrationUser->data()->identifier),
             ];
         }
-
-        // Basic user variables
-        $smarty->assign('LOGGED_IN_USER', [
-            'username' => $user->getDisplayname(true),
-            'nickname' => $user->getDisplayname(),
-            'profile' => $user->getProfileURL(),
-            'panel_profile' => URL::build('/panel/user/' . urlencode($user->data()->id) . '-' . urlencode($user->data()->username)),
-            'username_style' => $user->getGroupStyle(),
-            'user_title' => Output::getClean($user->data()->user_title),
-            'avatar' => $user->getAvatar(),
-            'integrations' => $user_integrations,
-        ]);
-
-        // Panel access?
-        if ($user->canViewStaffCP()) {
-            $smarty->assign([
-                'PANEL_LINK' => URL::build('/panel'),
-                'PANEL' => $language->get('moderator', 'staff_cp'),
-            ]);
-        }
     } else {
         // Perform tasks for guests
         if (!$_SESSION['checked'] || (isset($_SESSION['checked']) && $_SESSION['checked'] <= strtotime('-5 minutes'))) {
@@ -670,13 +531,12 @@ if ($page != 'install') {
 
         // Auto language enabled?
         if (Settings::get('auto_language_detection')) {
-            $smarty->assign('AUTO_LANGUAGE', true);
+            define('AUTO_LANGUAGE', true);
         }
     }
 
     // Dark mode
-    $cache->setCache('template_settings');
-    $darkMode = $cache->isCached('darkMode') ? $cache->retrieve('darkMode') : '0';
+    $darkMode = Settings::get('dark_mode', '0');
     if ($user->isLoggedIn()) {
         $darkMode = $user->data()->night_mode !== null ? $user->data()->night_mode : $darkMode;
     } else {
