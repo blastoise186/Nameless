@@ -21,7 +21,7 @@
         "wohali/oauth2-discord-new": "^1.2.1",
         "league/oauth2-google": "^4.0",
         "guzzlehttp/guzzle": "^7.5",
-        "xpaw/php-minecraft-query": "^4.0.1",
+        "xpaw/php-minecraft-query": "^5.0.0",
         "games647/minecraft-banner-generator": "^0.4.1",
         "astrotomic/php-twemoji": "^0.2.2",
         "samerton/i18next": "^1.0.1",
