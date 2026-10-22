@@ -12,7 +12,7 @@
     "chart.js": "2.9.4",
     "codemirror": "^5.65.2",
     "datatables.net": "^1.11.5",
-    "datatables.net-bs4": "^1.11.5",
+    "datatables.net-bs4": "^3.1.4",
     "dropzone": "5.9.3",
     "fomantic-ui": "^2.9.4",
     "fs-extra": "^11.0.0",
