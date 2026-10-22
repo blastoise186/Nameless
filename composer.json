@@ -38,7 +38,7 @@
         "junker/debugbar-smarty": "^0.2.1",
         "hannesvdvreken/guzzle-debugbar": "^4.0.1",
         "fakerphp/faker": "^1.21",
-        "php-debugbar/php-debugbar": "^2.1"
+        "php-debugbar/php-debugbar": "^3.8"
     },
     "autoload": {
         "classmap": [
