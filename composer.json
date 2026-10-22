@@ -14,7 +14,7 @@
         "smarty/smarty": "^4.3",
         "ezyang/htmlpurifier": "^4.16",
         "samayo/bulletproof": "^5.0",
-        "phpmailer/phpmailer": "^6.7.1",
+        "phpmailer/phpmailer": "^7.1.1",
         "evert/sitemap-php": "^1.2",
         "robthree/twofactorauth": "^3.0",
         "league/oauth2-client": "^2.6.1",
