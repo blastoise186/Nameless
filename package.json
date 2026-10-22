@@ -13,7 +13,7 @@
     "codemirror": "^5.65.2",
     "datatables.net": "^1.11.5",
     "datatables.net-bs4": "^1.11.5",
-    "dropzone": "5.9.3",
+    "dropzone": "6.3.5",
     "fomantic-ui": "^2.9.4",
     "fs-extra": "^11.0.0",
     "image-picker": "^0.3.1",
