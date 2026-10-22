@@ -19,7 +19,7 @@
         "robthree/twofactorauth": "^3.0",
         "league/oauth2-client": "^2.6.1",
         "wohali/oauth2-discord-new": "^1.2.1",
-        "league/oauth2-google": "^4.0",
+        "league/oauth2-google": "^5.0",
         "guzzlehttp/guzzle": "^7.5",
         "xpaw/php-minecraft-query": "^4.0.1",
         "games647/minecraft-banner-generator": "^0.4.1",
